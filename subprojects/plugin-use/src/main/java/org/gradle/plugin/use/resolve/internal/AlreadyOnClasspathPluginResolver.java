@@ -17,6 +17,7 @@
 package org.gradle.plugin.use.resolve.internal;
 
 import org.gradle.api.internal.initialization.ClassLoaderScope;
+import org.gradle.api.internal.plugins.PluginDescriptor;
 import org.gradle.api.internal.plugins.PluginDescriptorLocator;
 import org.gradle.api.internal.plugins.PluginInspector;
 import org.gradle.api.internal.plugins.PluginRegistry;
@@ -65,16 +66,20 @@ public class AlreadyOnClasspathPluginResolver implements PluginResolver {
         }
     }
 
-    private void resolveAlreadyOnClasspath(PluginId pluginId, PluginResolutionResult result) {
+    public void resolveAlreadyOnClasspath(PluginId pluginId, PluginResolutionResult result) {
         PluginResolution pluginResolution = new ClassPathPluginResolution(pluginId, parentLoaderScope, pluginInspector);
         result.found("Already on classpath", pluginResolution);
     }
 
-    private boolean isPresentOnClasspath(PluginId pluginId) {
+    public boolean isPresentOnClasspath(PluginId pluginId) {
         return pluginDescriptorLocator.findPluginDescriptor(pluginId.toString()) != null;
     }
 
-    private boolean isCorePlugin(PluginId pluginId) {
+    public PluginDescriptor getDescriptor(PluginId pluginId) {
+        return pluginDescriptorLocator.findPluginDescriptor(pluginId.toString());
+    }
+
+    public boolean isCorePlugin(PluginId pluginId) {
         return corePluginRegistry.lookup(pluginId) != null;
     }
 }

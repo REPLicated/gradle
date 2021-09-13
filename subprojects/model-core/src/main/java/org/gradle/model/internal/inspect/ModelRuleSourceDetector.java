@@ -16,20 +16,18 @@
 
 package org.gradle.model.internal.inspect;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import javax.annotation.concurrent.ThreadSafe;
 import org.gradle.internal.Cast;
 import org.gradle.internal.UncheckedException;
 import org.gradle.model.RuleSource;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
@@ -37,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @ThreadSafe
 public class ModelRuleSourceDetector {
@@ -83,14 +82,7 @@ public class ModelRuleSourceDetector {
     // TODO return a richer data structure that provides meta data about how the source was found, for use is diagnostics
     public Iterable<Class<? extends RuleSource>> getDeclaredSources(Class<?> container) {
         try {
-            return FluentIterable.from(cache.get(container))
-                    .transform(new Function<Reference<Class<? extends RuleSource>>, Class<? extends RuleSource>>() {
-                        @Override
-                        public Class<? extends RuleSource> apply(Reference<Class<? extends RuleSource>> input) {
-                            return input.get();
-                        }
-                    })
-                    .filter(Predicates.notNull());
+            return cache.get(container).stream().map(input -> input.get()).filter(Predicates.notNull()).collect(Collectors.toList());
         } catch (ExecutionException e) {
             throw UncheckedException.throwAsUncheckedException(e);
         }

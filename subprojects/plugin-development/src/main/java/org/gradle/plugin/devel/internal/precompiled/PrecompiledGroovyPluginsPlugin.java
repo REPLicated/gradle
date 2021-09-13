@@ -56,7 +56,7 @@ public abstract class PrecompiledGroovyPluginsPlugin implements Plugin<Project> 
             .map(file -> new PrecompiledGroovyScript(file, getTextFileResourceLoader()))
             .collect(Collectors.toList());
 
-        declarePluginMetadata(pluginExtension, scriptPlugins);
+        declarePluginMetadata(pluginExtension, scriptPlugins, project);
 
         DirectoryProperty buildDir = project.getLayout().getBuildDirectory();
         TaskContainer tasks = project.getTasks();
@@ -89,9 +89,14 @@ public abstract class PrecompiledGroovyPluginsPlugin implements Plugin<Project> 
         pluginSourceSet.getOutput().dir(extractPluginRequests.flatMap(ExtractPluginRequestsTask::getExtractedPluginRequestsClassesStagingDirectory));
     }
 
-    private void declarePluginMetadata(GradlePluginDevelopmentExtension pluginExtension, List<PrecompiledGroovyScript> scriptPlugins) {
+    private void declarePluginMetadata(GradlePluginDevelopmentExtension pluginExtension, List<PrecompiledGroovyScript> scriptPlugins, final Project project) {
         pluginExtension.plugins(pluginDeclarations ->
-            scriptPlugins.forEach(scriptPlugin ->
-                pluginDeclarations.create(scriptPlugin.getId(), scriptPlugin::declarePlugin)));
+            scriptPlugins.forEach(scriptPlugin -> {
+                Plugin<?> existingPlugin = project.getPlugins().findPlugin(scriptPlugin.getId());
+                if (existingPlugin != null) {
+                    project.getLogger().warn("Found plugin with same id: '{}' ({}).", scriptPlugin.getId(), existingPlugin.getClass());
+                }
+                pluginDeclarations.create(scriptPlugin.getId(), scriptPlugin::declarePlugin);
+            }));
     }
 }

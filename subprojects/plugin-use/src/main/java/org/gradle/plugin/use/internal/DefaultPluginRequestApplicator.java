@@ -16,6 +16,7 @@
 
 package org.gradle.plugin.use.internal;
 
+import jdk.tools.jlink.resources.plugins;
 import org.gradle.api.GradleException;
 import org.gradle.api.InvalidUserCodeException;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
@@ -38,6 +39,7 @@ import org.gradle.plugin.management.internal.PluginRequests;
 import org.gradle.plugin.management.internal.PluginResolutionStrategyInternal;
 import org.gradle.plugin.use.PluginId;
 import org.gradle.plugin.use.resolve.internal.AlreadyOnClasspathPluginResolver;
+import org.gradle.plugin.use.resolve.internal.ArtifactRepositoriesPluginResolver;
 import org.gradle.plugin.use.resolve.internal.PluginResolution;
 import org.gradle.plugin.use.resolve.internal.PluginResolutionResult;
 import org.gradle.plugin.use.resolve.internal.PluginResolveContext;
@@ -81,11 +83,15 @@ public class DefaultPluginRequestApplicator implements PluginRequestApplicator {
             return;
         }
 
-        final PluginResolver effectivePluginResolver = wrapInAlreadyInClasspathResolver(classLoaderScope);
+        final AlreadyOnClasspathPluginResolver effectivePluginResolver = (AlreadyOnClasspathPluginResolver) wrapInAlreadyInClasspathResolver(classLoaderScope);
         if (!requests.isEmpty()) {
             addPluginArtifactRepositories(scriptHandler.getRepositories());
         }
         List<Result> results = resolvePluginRequests(requests, effectivePluginResolver);
+
+        if (plugins.isCore(pluginId) && ArtifactRepositoriesPluginResolver.canResolve('')) {
+
+        }
 
         final List<Consumer<PluginManagerInternal>> pluginApplyActions = newLinkedList();
         final Map<Result, PluginImplementation<?>> pluginImplsFromOtherLoaders = newLinkedHashMap();

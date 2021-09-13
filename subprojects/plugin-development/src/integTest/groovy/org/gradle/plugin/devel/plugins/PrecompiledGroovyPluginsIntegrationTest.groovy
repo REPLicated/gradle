@@ -957,6 +957,40 @@ class PrecompiledGroovyPluginsIntegrationTest extends AbstractIntegrationSpec {
         succeeds(SAMPLE_TASK)
     }
 
+    def "should warn user of plugin duplication"() {
+        given:
+        enablePrecompiledPluginsInBuildSrc()
+
+        file("buildSrc/src/main/groovy/plugins/java.gradle") << """
+            class TestTask extends DefaultTask {
+                @TaskAction
+                void run() {
+                    println 'from custom task'
+                }
+            }
+
+            task testTask(type: TestTask)
+        """
+
+        buildFile << """
+            plugins {
+                id 'java'
+            }
+        """
+
+        when:
+        succeeds("help")
+
+        then:
+        outputContains("Found plugin with same id: 'java' (class org.gradle.api.plugins.JavaPlugin).")
+
+        when:
+        succeeds("help")
+
+        then:
+        outputContains("Found plugin with same id: 'java' (class org.gradle.api.plugins.JavaPlugin).")
+    }
+
     private String packagePrecompiledPlugin(String pluginFile, String pluginContent = REGISTER_SAMPLE_TASK) {
         Map<String, String> plugins = [:]
         plugins.putAt(pluginFile, pluginContent)
