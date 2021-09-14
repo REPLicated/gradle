@@ -25,8 +25,13 @@ import org.gradle.plugin.management.internal.InvalidPluginRequestException;
 import org.gradle.plugin.management.internal.PluginRequestInternal;
 import org.gradle.plugin.management.internal.autoapply.AutoAppliedGradleEnterprisePlugin;
 import org.gradle.plugin.use.PluginId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AlreadyOnClasspathPluginResolver implements PluginResolver {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AlreadyOnClasspathPluginResolver.class);
+
     private final PluginResolver delegate;
     private final PluginRegistry corePluginRegistry;
     private final PluginDescriptorLocator pluginDescriptorLocator;
@@ -44,6 +49,9 @@ public class AlreadyOnClasspathPluginResolver implements PluginResolver {
     @Override
     public void resolve(PluginRequestInternal pluginRequest, PluginResolutionResult result) {
         PluginId pluginId = pluginRequest.getId();
+        if (isCorePlugin(pluginId) && isPrecompiledScriptOnClasspath(pluginId)) {
+            LOGGER.warn("Detected precompiled script that conflicts with core plugin: '{}'.", pluginId);
+        }
         if (isCorePlugin(pluginId) || !isPresentOnClasspath(pluginId)) {
             delegate.resolve(pluginRequest, result);
         } else if (pluginRequest.getOriginalRequest().getVersion() != null) {
@@ -69,6 +77,11 @@ public class AlreadyOnClasspathPluginResolver implements PluginResolver {
     public void resolveAlreadyOnClasspath(PluginId pluginId, PluginResolutionResult result) {
         PluginResolution pluginResolution = new ClassPathPluginResolution(pluginId, parentLoaderScope, pluginInspector);
         result.found("Already on classpath", pluginResolution);
+    }
+
+    private boolean isPrecompiledScriptOnClasspath(PluginId pluginId) {
+        String pluginIdAsString = pluginId.getId().substring(0, 1).toUpperCase() + pluginId.getId().substring(1);
+        return parentLoaderScope.getExportClassLoader().getResource("precompiled_" + pluginIdAsString + ".class") != null;
     }
 
     public boolean isPresentOnClasspath(PluginId pluginId) {

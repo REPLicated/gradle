@@ -972,23 +972,55 @@ class PrecompiledGroovyPluginsIntegrationTest extends AbstractIntegrationSpec {
             task testTask(type: TestTask)
         """
 
-        buildFile << """
-            plugins {
-                id 'java'
+        buildFile << buildScriptContent
+
+        when:
+        succeeds("help")
+
+        then:
+        outputContains("Detected precompiled script that conflicts with core plugin: 'java'.")
+
+        when:
+        succeeds("help")
+
+        then:
+        outputContains("Detected precompiled script that conflicts with core plugin: 'java'.")
+
+        where:
+        buildScriptContent << ["plugins { id 'java' }", "apply plugin: 'java'"]
+    }
+
+    def "should not warn user of if precompiled script does not conflicts with core plugin"() {
+        given:
+        enablePrecompiledPluginsInBuildSrc()
+
+        file("buildSrc/src/main/groovy/plugins/java2.gradle") << """
+            class TestTask extends DefaultTask {
+                @TaskAction
+                void run() {
+                    println 'from custom task'
+                }
             }
+
+            task testTask(type: TestTask)
         """
 
-        when:
-        succeeds("help")
-
-        then:
-        outputContains("Found plugin with same id: 'java' (class org.gradle.api.plugins.JavaPlugin).")
+        buildFile << buildScriptContent
 
         when:
         succeeds("help")
 
         then:
-        outputContains("Found plugin with same id: 'java' (class org.gradle.api.plugins.JavaPlugin).")
+        outputContains("Detected precompiled script that conflicts with core plugin: 'java'.")
+
+        when:
+        succeeds("help")
+
+        then:
+        outputContains("Detected precompiled script that conflicts with core plugin: 'java'.")
+
+        where:
+        buildScriptContent << ["plugins { id 'java' }", "apply plugin: 'java'"]
     }
 
     private String packagePrecompiledPlugin(String pluginFile, String pluginContent = REGISTER_SAMPLE_TASK) {

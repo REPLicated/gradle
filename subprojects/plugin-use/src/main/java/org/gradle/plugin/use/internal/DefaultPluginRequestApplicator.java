@@ -16,7 +16,6 @@
 
 package org.gradle.plugin.use.internal;
 
-import jdk.tools.jlink.resources.plugins;
 import org.gradle.api.GradleException;
 import org.gradle.api.InvalidUserCodeException;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
@@ -39,12 +38,13 @@ import org.gradle.plugin.management.internal.PluginRequests;
 import org.gradle.plugin.management.internal.PluginResolutionStrategyInternal;
 import org.gradle.plugin.use.PluginId;
 import org.gradle.plugin.use.resolve.internal.AlreadyOnClasspathPluginResolver;
-import org.gradle.plugin.use.resolve.internal.ArtifactRepositoriesPluginResolver;
 import org.gradle.plugin.use.resolve.internal.PluginResolution;
 import org.gradle.plugin.use.resolve.internal.PluginResolutionResult;
 import org.gradle.plugin.use.resolve.internal.PluginResolveContext;
 import org.gradle.plugin.use.resolve.internal.PluginResolver;
 import org.gradle.util.internal.TextUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -60,6 +60,10 @@ import static org.gradle.internal.classpath.CachedClasspathTransformer.StandardT
 import static org.gradle.util.internal.CollectionUtils.collect;
 
 public class DefaultPluginRequestApplicator implements PluginRequestApplicator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AlreadyOnClasspathPluginResolver.class);
+
+
     private final PluginRegistry pluginRegistry;
     private final PluginResolverFactory pluginResolverFactory;
     private final PluginRepositoriesProvider pluginRepositoriesProvider;
@@ -79,19 +83,17 @@ public class DefaultPluginRequestApplicator implements PluginRequestApplicator {
     @Override
     public void applyPlugins(final PluginRequests requests, final ScriptHandlerInternal scriptHandler, @Nullable final PluginManagerInternal target, final ClassLoaderScope classLoaderScope) {
         if (target == null || requests.isEmpty()) {
+            System.out.println("Hello from applyPlugins2");
             defineScriptHandlerClassScope(scriptHandler, classLoaderScope, Collections.emptyList());
             return;
         }
+        System.out.println("Hello from applyPlugins");
 
-        final AlreadyOnClasspathPluginResolver effectivePluginResolver = (AlreadyOnClasspathPluginResolver) wrapInAlreadyInClasspathResolver(classLoaderScope);
+        final PluginResolver effectivePluginResolver = wrapInAlreadyInClasspathResolver(classLoaderScope);
         if (!requests.isEmpty()) {
             addPluginArtifactRepositories(scriptHandler.getRepositories());
         }
         List<Result> results = resolvePluginRequests(requests, effectivePluginResolver);
-
-        if (plugins.isCore(pluginId) && ArtifactRepositoriesPluginResolver.canResolve('')) {
-
-        }
 
         final List<Consumer<PluginManagerInternal>> pluginApplyActions = newLinkedList();
         final Map<Result, PluginImplementation<?>> pluginImplsFromOtherLoaders = newLinkedHashMap();
@@ -129,6 +131,7 @@ public class DefaultPluginRequestApplicator implements PluginRequestApplicator {
     }
 
     private void applyPlugin(PluginManagerInternal target, Result result, PluginImplementation<?> impl) {
+        System.out.println("Hello from applyPlugin");
         applyPlugin(result.request, result.found.getPluginId(), () -> {
             if (result.request.isApply()) {
                 target.apply(impl);
@@ -140,6 +143,7 @@ public class DefaultPluginRequestApplicator implements PluginRequestApplicator {
     // Because we are only build.gradle files right now, this holds.
     // It won't for arbitrary scripts though.
     private void applyLegacyPlugin(PluginManagerInternal target, Result result, PluginId id) {
+        System.out.println("Hello from applyLegacyPlugin");
         applyPlugin(result.request, id, () -> {
             if (result.request.isApply()) {
                 target.apply(id.toString());
